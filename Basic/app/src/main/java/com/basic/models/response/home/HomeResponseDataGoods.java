@@ -1,4 +1,4 @@
-package com.basic.home;
+package com.basic.models.response.home;
 
 /**
  * Created by ybk on 2015/9/7.

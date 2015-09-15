@@ -1,4 +1,4 @@
-package com.basic.http;
+package com.basic.models.response;
 
 /**
  * Created by ybk on 2015/9/5.
@@ -6,6 +6,15 @@ package com.basic.http;
 public class BaseResponse {
     private String msg;
     private int returnCode;
+    private int taskType;
+
+    public int getTaskType() {
+        return taskType;
+    }
+
+    public void setTaskType(int taskType) {
+        this.taskType = taskType;
+    }
 
     public String getMsg() {
         return msg;

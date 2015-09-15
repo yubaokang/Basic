@@ -1,4 +1,4 @@
-package com.basic.home;
+package com.basic.models.response.home;
 
 import java.util.List;
 

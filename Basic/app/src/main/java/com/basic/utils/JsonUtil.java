@@ -11,7 +11,7 @@ import com.alibaba.fastjson.JSON;
 import com.alibaba.fastjson.TypeReference;
 
 /**
- * 完成对json数据的解�?
+ * 完成对json数据的解析?
  *
  * @author wanglei
  */
