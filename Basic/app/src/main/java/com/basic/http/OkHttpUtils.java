@@ -1,13 +1,8 @@
 package com.basic.http;
 
-import android.os.Handler;
-import android.text.TextUtils;
 import android.util.Log;
 
 import com.alibaba.fastjson.JSON;
-import com.basic.consts.UrlConst;
-import com.basic.models.request.BaseRequest;
-import com.basic.models.response.BaseResponse;
 import com.basic.utils.JsonUtil;
 import com.squareup.okhttp.Callback;
 import com.squareup.okhttp.FormEncodingBuilder;
@@ -27,7 +22,8 @@ import java.util.concurrent.TimeUnit;
  */
 public class OkHttpUtils {
 
-    private String HOST_URL = UrlConst.URL_SERVICES;
+
+    private String HOST_URL = "http://phoneapi.goujiawang.com/";
 
     private static OkHttpUtils okHttpUtils;
 
@@ -37,18 +33,16 @@ public class OkHttpUtils {
 
     private OnOkHttpListener onOkHttpListener;
 
-    private Handler handler;
-
     public interface OnOkHttpListener {
-        void onOkResponse(BaseResponse responseObject);
+        void onSuccess(BaseResponse responseObject);
+
+        void onFailed(BaseResponse responseObject);
     }
 
     private OkHttpUtils() {
-        HOST_URL = UrlConst.URL_SERVICES;
         client = new OkHttpClient();
         errBasic = new BaseResponse();
         client.setConnectTimeout(15000, TimeUnit.SECONDS);
-        handler = new Handler();
     }
 
     public static synchronized OkHttpUtils getInstance() {
@@ -56,9 +50,6 @@ public class OkHttpUtils {
             okHttpUtils = new OkHttpUtils();
         return okHttpUtils;
     }
-    /////////////////////////////////////////////////////////
-    ////以下方式采用匿名内部类回调接口
-    /////////////////////////////////////////////////////////
 
     /**
      * @param url         get请求地址
@@ -83,8 +74,12 @@ public class OkHttpUtils {
     }
 
     /**
+     * 针对某些特殊的接口，请求的参数个数不固定，在javaBean中不好处理，
+     * 可以在javaBean中写一个getRequestBody(),自定义需要返回的RequestBody对象
+     * 比如：筛选接口，
+     *
      * @param url         post请求地址
-     * @param requestBody 请求的requestBody
+     * @param requestBody 请求的RequestBody对象
      * @param responseClz 返回的对象的class
      * @param listener    回调接口
      */
@@ -92,6 +87,7 @@ public class OkHttpUtils {
         Request request = new Request.Builder().url(HOST_URL + url).post(requestBody).build();
         setResponse(request, responseClz, listener);
     }
+
 
     /**
      * @param request     OkHttp中的Request对象
@@ -103,45 +99,23 @@ public class OkHttpUtils {
         client.newCall(request).enqueue(new Callback() {
             @Override
             public void onFailure(Request request, IOException e) {
-                handler.post(new Runnable() {
-                    @Override
-                    public void run() {
-                        onOkHttpListener.onOkResponse(getErrResponse());
-                    }
-                });
+                onOkHttpListener.onFailed(getErrResponse());
             }
 
             @Override
             public void onResponse(Response response) throws IOException {
                 String json = response.body().string();
-                Log.i("okhttp--返回     ", json);
-                final BaseResponse baseResponse = (BaseResponse) JsonUtil.getObj(json, responseClz);
+                Log.i(">>OkHttp--返回     ", json);
+                BaseResponse baseResponse = (BaseResponse) JsonUtil.getObj(json, responseClz);
                 if (baseResponse != null) {
-                    handler.post(new Runnable() {
-                        @Override
-                        public void run() {
-                            onOkHttpListener.onOkResponse(baseResponse);
-                        }
-                    });
+                    //basicResponse.setMsg("请求成功");
+                    //basicResponse.setReturnCode(200);
+                    onOkHttpListener.onSuccess(baseResponse);
                 } else {
-                    handler.post(new Runnable() {
-                        @Override
-                        public void run() {
-                            onOkHttpListener.onOkResponse(getErrResponse());
-                        }
-                    });
+                    onOkHttpListener.onFailed(getErrResponse());
                 }
             }
         });
-    }
-
-    /**
-     * @return ResponseBasic 网络错误，返回带有错误信息的ResponseBasic对象
-     */
-    private BaseResponse getErrResponse() {
-        errBasic.setMsg("网络错误");
-        errBasic.setReturnCode(404);
-        return errBasic;
     }
 
     /**
@@ -159,108 +133,20 @@ public class OkHttpUtils {
                 Map.Entry entry = (Map.Entry) it.next();
                 Object key = entry.getKey();
                 Object value = entry.getValue();
-                if (!TextUtils.isEmpty(value.toString())) {
-                    sb.append(key).append("=").append(value).append("&");
-                    builder.add(key.toString(), value.toString());
-                }
+                sb.append(key).append("=").append(value).append("&");
+                builder.add(key.toString(), value.toString());
             }
-            Log.i("okhttp--请求>>>>", sb.toString().substring(0, sb.toString().length() - 1));
+            Log.i(">>>>>OkHttp--请求>>>>", sb.toString());
         }
         return builder.build();
-    }
-
-    /////////////////////////////////////////////////////////
-    ////以下可以根据传递进来的接口号(tasktype)，判断是哪个接口返回，在最外部写一个接口回调
-    /////////////////////////////////////////////////////////
-
-    /**
-     * @param tasktype    接口号
-     * @param url         get请求地址
-     * @param responseClz 返回的对象的class
-     * @param listener    回调接口
-     */
-    public <T> void get(int tasktype, String url, Class<T> responseClz, OnOkHttpListener listener) {
-        Request request = new Request.Builder().url(HOST_URL + url).build();
-        setResponse(tasktype, request, responseClz, listener);
-    }
-
-    /**
-     * @param tasktype    接口号
-     * @param url         post请求地址
-     * @param baseRequest 请求的对象
-     * @param responseClz 返回的对象的class
-     * @param listener    回调接口
-     */
-    public <T> void post(int tasktype, String url, BaseRequest baseRequest, Class<T> responseClz, OnOkHttpListener listener) {
-        RequestBody body = getBody(HOST_URL + url, baseRequest);
-        Request request = new Request.Builder().url(HOST_URL + url).post(body).build();
-        setResponse(tasktype, request, responseClz, listener);
-    }
-
-    /**
-     * @param tasktype    接口号
-     * @param url         post请求地址
-     * @param requestBody 请求的requestBody
-     * @param responseClz 返回的对象的class
-     * @param listener    回调接口
-     */
-    public <T> void post(int tasktype, String url, RequestBody requestBody, Class<T> responseClz, OnOkHttpListener listener) {
-        Request request = new Request.Builder().url(HOST_URL + url).post(requestBody).build();
-        setResponse(tasktype, request, responseClz, listener);
-    }
-
-    /**
-     * @param tasktype    接口号
-     * @param request     OkHttp中的Request对象
-     * @param responseClz 接口请求返回的json需要转换成的Object对象
-     * @param listener    回调接口
-     */
-    private <T> void setResponse(final int tasktype, Request request, final Class<T> responseClz, OnOkHttpListener listener) {
-        onOkHttpListener = listener;
-        client.newCall(request).enqueue(new Callback() {
-            @Override
-            public void onFailure(Request request, IOException e) {
-                handler.post(new Runnable() {
-                    @Override
-                    public void run() {
-                        onOkHttpListener.onOkResponse(getErrResponse(tasktype));
-                    }
-                });
-            }
-
-            @Override
-            public void onResponse(Response response) throws IOException {
-                String json = response.body().string();
-                Log.i(">>okhttp--返回     ", json);
-                final BaseResponse baseResponse = (BaseResponse) JsonUtil.getObj(json, responseClz);
-                if (baseResponse != null) {
-                    baseResponse.setTaskType(tasktype);
-                    handler.post(new Runnable() {
-                        @Override
-                        public void run() {
-                            onOkHttpListener.onOkResponse(baseResponse);
-                        }
-                    });
-                } else {
-                    handler.post(new Runnable() {
-                        @Override
-                        public void run() {
-                            onOkHttpListener.onOkResponse(getErrResponse(tasktype));
-                        }
-                    });
-                }
-            }
-        });
     }
 
     /**
      * @return ResponseBasic 网络错误，返回带有错误信息的ResponseBasic对象
      */
-    private BaseResponse getErrResponse(int taskType) {
+    private BaseResponse getErrResponse() {
         errBasic.setMsg("网络错误");
         errBasic.setReturnCode(404);
-        errBasic.setTaskType(taskType);
         return errBasic;
     }
-
 }

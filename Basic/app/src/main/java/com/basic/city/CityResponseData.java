@@ -1,4 +1,4 @@
-package com.basic.models.response.city;
+package com.basic.city;
 
 import java.io.Serializable;
 

@@ -1,6 +1,6 @@
-package com.basic.models.response.city;
+package com.basic.city;
 
-import com.basic.models.response.BaseResponse;
+import com.basic.http.BaseResponse;
 
 import java.util.List;
 
