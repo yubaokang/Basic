@@ -1,6 +1,6 @@
-package com.basic.models.response.home;
+package com.basic.home;
 
-import com.basic.models.response.BaseResponse;
+import com.basic.http.BaseResponse;
 
 /**
  * Created by ybk on 2015/9/7.

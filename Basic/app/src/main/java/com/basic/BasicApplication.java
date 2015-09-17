@@ -1,4 +1,4 @@
-package com.basic.views.base;
+package com.basic;
 
 import android.app.Application;
 
